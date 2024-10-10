@@ -3,9 +3,9 @@ import numpy as np
 import argparse
 import cv2
 import os
-from keypoint_proposal import KeypointProposer
-from constraint_generation import ConstraintGenerator
-from utils import (
+from rekep.keypoint_proposal import KeypointProposer
+from rekep.constraint_generation import ConstraintGenerator
+from rekep.utils import (
     bcolors,
     get_config,
 )
