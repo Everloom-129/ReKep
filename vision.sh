@@ -1,4 +1,4 @@
 python main_vision.py \
-    --instruction "Pick up the white pen and drop it upright into the black pen holder" \
-    --image_path "./data/pen.png" \
+    --instruction "Pour the hot water from the kettle into the black pot" \
+    --image_path "/home/tonyw/VLM/ReKep/data/franka+kitchen/6.jpg" \
     --visualize

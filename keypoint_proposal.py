@@ -29,36 +29,15 @@ class KeypointProposer:
         # for each masks, cluster in feature space to get meaningful regions, and uske their centers as keypoint candidates
         candidate_keypoints, candidate_pixels, candidate_rigid_group_ids = self._cluster_features(points, features_flat, masks)
 
-        print(f"Debug: candidate_keypoints shape: {np.array(candidate_keypoints).shape}")
-        print(f"Debug: First few candidate_keypoints: {np.array(candidate_keypoints)[:5]}")
 
-        if len(candidate_keypoints) == 0:
-            print("Warning: No candidate keypoints generated. Returning empty arrays.")
-            return [], rgb  # Return empty keypoints and original image
-
-        # exclude keypoints that are outside of the workspace
-        within_space = filter_points_by_bounds(candidate_keypoints, self.bounds_min, self.bounds_max, strict=False)
-
-        if len(within_space) == 0:
-            print("Warning: No keypoints within specified bounds. Returning all candidate keypoints.")
-            within_space = np.arange(len(candidate_keypoints))
-
-        candidate_keypoints = np.array(candidate_keypoints)[within_space]
-        candidate_pixels = np.array(candidate_pixels)[within_space]
-        candidate_rigid_group_ids = np.array(candidate_rigid_group_ids)[within_space]
+        # exclude keypoints that are o
         # merge close points by clustering in cartesian space
-        merged_indices = self._merge_clusters(candidate_keypoints)
-        candidate_keypoints = candidate_keypoints[merged_indices]
-        candidate_pixels = candidate_pixels[merged_indices]
-        candidate_rigid_group_ids = candidate_rigid_group_ids[merged_indices]
         # sort candidates by locations
         sort_idx = np.lexsort((candidate_pixels[:, 0], candidate_pixels[:, 1]))
-        candidate_keypoints = candidate_keypoints[sort_idx]
         candidate_pixels = candidate_pixels[sort_idx]
         candidate_rigid_group_ids = candidate_rigid_group_ids[sort_idx]
         # project keypoints to image space
         projected = self._project_keypoints_to_img(rgb, candidate_pixels, candidate_rigid_group_ids, masks, features_flat)
-        pdb.set_trace()
         return candidate_keypoints, projected
 
     def _preprocess(self, rgb, points, masks):
@@ -114,7 +93,7 @@ class KeypointProposer:
         assert img_tensors.shape[1] == 3, "unexpected image shape"
         
         features_dict = self.dinov2.forward_features(img_tensors) # dict_keys(['x_norm_clstoken', 'x_norm_regtokens', 'x_norm_patchtokens', 'x_prenorm', 'masks'])
-        pdb.set_trace()
+        # pdb.set_trace()
         raw_feature_grid = features_dict['x_norm_patchtokens']  # float32 [num_cams, patch_h*patch_w, feature_dim] 
         raw_feature_grid = raw_feature_grid.reshape(1, patch_h, patch_w, -1)  # float32 [num_cams, patch_h, patch_w, feature_dim] , torch.Size([1, 50, 67, 384])
         # compute per-point feature using bilinear interpolation
@@ -137,8 +116,6 @@ class KeypointProposer:
             # consider only foreground features
             obj_features_flat = features_flat[binary_mask.reshape(-1)]
             feature_pixels = np.argwhere(binary_mask)
-            feature_points = points[binary_mask]
-            print(f"Debug: feature_points shape: {feature_points.shape}")
             print(f"Debug: feature_pixels shape: {feature_pixels.shape}")
             print(f"Debug: obj_features_flat shape: {obj_features_flat.shape}")
 
@@ -150,9 +127,6 @@ class KeypointProposer:
             features_pca = (features_pca - features_pca.min(0)[0]) / (features_pca.max(0)[0] - features_pca.min(0)[0])
             X = features_pca
             # add feature_pixels as extra dimensions
-            feature_points_torch = torch.tensor(feature_points, dtype=features_pca.dtype, device=features_pca.device)
-            feature_points_torch  = (feature_points_torch - feature_points_torch.min(0)[0]) / (feature_points_torch.max(0)[0] - feature_points_torch.min(0)[0])
-            X = torch.cat([X, feature_points_torch], dim=-1)
             
             
             # cluster features to get meaningful regions
@@ -166,22 +140,18 @@ class KeypointProposer:
             for cluster_id in range(self.config['num_candidates_per_mask']): # 5
                 cluster_center = cluster_centers[cluster_id][:3]
                 member_idx = cluster_ids_x == cluster_id
-                member_points = feature_points[member_idx]
                 member_pixels = feature_pixels[member_idx]
                 member_features = features_pca[member_idx]
                 dist = torch.norm(member_features - cluster_center, dim=-1)
                 closest_idx = torch.argmin(dist)
-                candidate_keypoints.append(member_points[closest_idx])
                 candidate_pixels.append(member_pixels[closest_idx])
                 candidate_rigid_group_ids.append(rigid_group_id)
 
-        candidate_keypoints = np.array(candidate_keypoints)
         candidate_pixels = np.array(candidate_pixels)
         candidate_rigid_group_ids = np.array(candidate_rigid_group_ids)
 
         print(f"Debug: Number of clusters: {self.config['num_candidates_per_mask']}")
-        print(f"Debug: Number of candidate keypoints: {len(candidate_keypoints)}")
-
+        candidate_keypoints = None
         return candidate_keypoints, candidate_pixels, candidate_rigid_group_ids
 
     def _merge_clusters(self, candidate_keypoints):

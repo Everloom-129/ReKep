@@ -55,10 +55,9 @@ class MainVision:
         # = Keypoint Proposal and Constraint Generation
         # ====================================
         keypoints, projected_img = self.keypoint_proposer.get_keypoints(rgb, points, masks)
-        print(f'{bcolors.HEADER}Got {len(keypoints)} proposed keypoints{bcolors.ENDC}')
         if self.visualize:
             self._show_image(projected_img)
-        metadata = {'init_keypoint_positions': keypoints, 'num_keypoints': len(keypoints)}
+        metadata = {'init_keypoint_positions': None, 'num_keypoints': 5}
         rekep_program_dir = self.constraint_generator.generate(projected_img, instruction, metadata)
         print(f'{bcolors.HEADER}Constraints generated and saved in {rekep_program_dir}{bcolors.ENDC}')
 

@@ -1,4 +1,4 @@
-device: &device 'cuda'
+device: &device 'cuda:1'
 seed: &seed 0
 
 main:
