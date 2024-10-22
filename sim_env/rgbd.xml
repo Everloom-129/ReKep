@@ -1,0 +1,41 @@
+<mujoco model="panda_env">
+  <!-- Compiler Options -->
+  <compiler angle="radian" meshdir="assets" autolimits="true" />
+
+  <!-- Option Settings -->
+  <option timestep="0.001" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <!-- Worldbody -->
+  <worldbody>
+    <!-- Plane (Ground) -->
+    <geom name="ground" type="plane" pos="0 0 0" size="10 10 0.1" material="grid" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- Load Panda Robot (referencing the panda.xml) -->
+    <include file="panda.xml"/>
+
+    <!-- Cameras -->
+    <camera name="fixed_camera1" pos="0 -1 1.5" quat="0.707 0.707 0 0" mode="fixed" />
+    <camera name="fixed_camera2" pos="1 1 1.5" quat="0.5 0.5 0.5 0.5" mode="fixed" />
+    <camera name="robot_camera" pos="0 0 1.5" mode="track" target="panda"/>
+
+  </worldbody>
+
+  <!-- Assets for ground plane (optional) -->
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1="0.1 0.1 0.1" rgb2="0.9 0.9 0.9"/>
+    <material name="grid" texture="grid" texrepeat="2 2" reflectance="0.2"/>
+  </asset>
+
+  <!-- Actuator (from Panda's file, use actuators defined there) -->
+  <actuator>
+    <include file="panda.xml"/>
+  </actuator>
+
+  <!-- Sensors (Camera sensors) -->
+  <sensor>
+    <camera name="camera_sensor1" site="fixed_camera1"/>
+    <camera name="camera_sensor2" site="fixed_camera2"/>
+    <camera name="robot_camera_sensor" site="robot_camera"/>
+  </sensor>
+
+</mujoco>
