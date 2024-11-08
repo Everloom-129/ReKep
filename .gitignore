@@ -11,7 +11,10 @@ output_videos/
 input_videos/
 input_video_processed.mp4
 temp_frame.jpg
-
+data/*.png
+data/*.pth
+data/*.jpg
+data/disp/
 # Caches and Datasets
 cache/
 data/1
