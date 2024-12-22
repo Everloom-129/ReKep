@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Optional
-from articulate_anything.utils.utils import (
+from .utils.utils import (
     create_dir,
     load_json,
     join_path,
     file_to_string,
 )
-from articulate_anything.utils.prompt_utils import (
+from .utils.prompt_utils import (
     setup_gemini,
     save_prompt_parts_as_html,
 )

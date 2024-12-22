@@ -1,12 +1,22 @@
 import base64
 from openai import OpenAI
+import aisuite as ai
 import os
+import sys
 import cv2
 import json
 import parse
 import numpy as np
 import time
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from rekep.utils import (
+    bcolors,
+    get_config,
+)
+
+MODEL_LIST = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-20240620"]
 
 # Function to encode the image
 def encode_image(image_path):
@@ -16,7 +26,8 @@ def encode_image(image_path):
 class ConstraintGenerator:
     def __init__(self, config):
         self.config = config
-        self.client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+        self.client = ai.Client()
+        # self.client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
         self.base_dir = './vlm_query'
         with open(os.path.join(self.base_dir, 'prompt_template.txt'), 'r') as f:
             self.prompt_template = f.read()
@@ -27,23 +38,47 @@ class ConstraintGenerator:
         # save prompt
         with open(os.path.join(self.task_dir, 'prompt.txt'), 'w') as f:
             f.write(prompt_text)
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": self.prompt_template.format(instruction=instruction)
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{img_base64}"
+        
+        # Check if using Anthropic model
+        if "anthropic" in self.config["model"]:
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": self.prompt_template.format(instruction=instruction)
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": img_base64
+                            }
                         }
-                    },
-                ]
-            }
-        ]
+                    ]
+                }
+            ]
+        else:
+            # Original OpenAI format
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": self.prompt_template.format(instruction=instruction)
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img_base64}"
+                            }
+                        }
+                    ]
+                }
+            ]
         return messages
 
     def _parse_and_save_constraints(self, output, save_dir):
@@ -117,7 +152,7 @@ class ConstraintGenerator:
             json.dump(metadata, f, indent=4) # TODO: check time usage
         print(f"Metadata saved to {os.path.join(self.task_dir, 'metadata.json')}")
 
-    def generate(self, img, instruction, metadata):
+    def generate(self, img, instruction, metadata, model_name="openai:chatgpt4o-latest"):
         """
         Args:
             img (np.ndarray): image of the scene (H, W, 3) uint8
@@ -135,7 +170,7 @@ class ConstraintGenerator:
         # build prompt
         messages = self._build_prompt(image_path, instruction)
         # stream back the response
-        stream = self.client.chat.completions.create(model=self.config['model'],
+        stream = self.client.chat.completions.create(model=model_name,
                                                         messages=messages,
                                                         temperature=self.config['temperature'],
                                                         max_tokens=self.config['max_tokens'],
@@ -158,23 +193,33 @@ class ConstraintGenerator:
         return self.task_dir
 
 
-def test_constraint_generation(cg_obj, image_path):
+def test_constraint_generation(cg_obj, image_path, model_name="openai:gpt-4-vision-preview"):
     rgb = cv2.imread(image_path)
     if rgb is None:
         raise FileNotFoundError(f"Image not found at {image_path}")
     rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
     print(f"Debug: Input image shape: {rgb.shape}")
 
-    cg_obj.generate(rgb, "Please generate constraints for the image", {})
+    cg_obj.generate(rgb, "Please generate constraints for the image", {}, model_name)
 
 
 # unit test
 if __name__ == "__main__":
+
     print("Unite Test on Constraint generation")
-    
-    cg_obj = ConstraintGenerator(
-        model="chatgpt-4o-latest",
-        temperature=0.0,        
-        max_tokens=2048
-    )
-    test_constraint_generation(cg_obj, "./point-draw/pen_marked.png")
+
+    models = [
+        # "openai:chatgpt-4o-latest",
+        "anthropic:claude-3-opus-20240229",
+        "anthropic:claude-3-sonnet-20240229"
+    ]
+    for m in models:
+        print(f"{bcolors.OKGREEN}Testing model: {m}{bcolors.ENDC}")
+        config = {
+            "model": m,
+            "temperature": 0.0,
+            "max_tokens": 2048
+        }
+        cg_obj = ConstraintGenerator(config)
+        test_constraint_generation(cg_obj, "./point-draw/pen_marked.png", m)
+

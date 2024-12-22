@@ -21,9 +21,9 @@ from rekep.utils import (
     spline_interpolate_poses,
     get_callable_grasping_cost_fn,
     print_opt_debug_dict,
+    timer_decorator,
 )
 
-from r2d2_vision import R2D2Vision
 '''
 metadata.json
 {
@@ -44,16 +44,6 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", message="xFormers is not available")
 
-import time
-
-def timer_decorator(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print(f"Function {func.__name__} took {end_time - start_time:.2f} seconds to execute")
-        return result
-    return wrapper
 
 @timer_decorator
 class MainR2D2:

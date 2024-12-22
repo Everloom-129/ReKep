@@ -7,7 +7,7 @@ import scipy.interpolate as interpolate
 from scipy.spatial.transform import Slerp
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import RotationSpline
-from . import transform_utils as T
+import transform_utils as T
 import yaml
 
 # ===============================================
@@ -167,6 +167,17 @@ def get_clock_time(milliseconds=False):
         return f'{curr_time.hour}:{curr_time.minute}:{curr_time.second}.{curr_time.microsecond // 1000}'
     else:
         return f'{curr_time.hour}:{curr_time.minute}:{curr_time.second}'
+
+def timer_decorator(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"Function {func.__name__} took {end_time - start_time:.2f} seconds to execute")
+        return result
+    return wrapper
+
+
 
 def angle_between_quats(q1, q2):
     """Angle between two quaternions"""
