@@ -1,42 +1,52 @@
-# Readme: development log
+# Development Log within PAL Lab
+Tony Wang @ PAL Lab
 
 
 ## Experiment
 > work as a baseline for Zeromimic 
 - [ ] Pouring tea
-- [ ] Put the green package in the drawer
-- [ ] Close the drawer
-- [ ] Open the drawer
-- [ ] Put down the green package
+- [x] Put the green package in the drawer
+- [x] Close the drawer
+- [x] Open the drawer
+- [x] Put down the green package
+- [ ] Brew a cup of espresso
 
+### Usage:
+In our experiment, we parellel run these module together with DROID Robot OS, AnyGrasp, Co-Tracker etc
 
+```bash
+# keypoint proposal, VLMs constraint generation:
+python r2d2_vision.py
+# keypoint optimization, action sequence generation:
+python r2d2_rekep.py
+```
 ## TODO
 
 ### 2024-12-17
-- [ ] What is different from ReKeP’s own codebase
-    - [ ] Plus
-        - [ ] better clustering for keypoint extraction
-    - [ ] Minus
+- [x] What is different from ReKeP’s own codebase
+    - [x] Plus
+        - [x] better clustering for keypoint extraction
+    - [x] Minus
         - [x] multiple stage: bug
-        - [ ] ik cost - doensn’t matter
-        - [ ] recovery
+        - [x] ik cost - doensn’t matter
+        - [x] recovery
 - [ ] stage decomposition  
     - store: in robot_state.json
     - load: solely in r2d2_rekep.py
     - question: keypoint following?
 - [x] Code-as-Monitor, another work with ReKeP as baseline in Omnigibson, pour tea result is 20, wherweas ReKeP official result is ~70%
-- [ ] path solver, cannnot generate action sequence?
-    - [ ] pdb trace to see optimization
-    - [ ] Reason: the given subgoal constraints are unvalid
-    - [ ] Solution: 
-        - [ ] treat it as ReKep's error
-        - [ ] modify the prompt
-        - [ ] improve environment.py
-        - [ ] hardcode the subgoal constraints? (add a transform to compute from end effector)
+- [x] path solver, cannnot generate action sequence?
+    - [x] pdb trace to see optimization
+    - [x] Reason: the given subgoal constraints are unvalid
+    - [x] Solution: 
+        - [x] leave it as default error
+        - [x] modify the prompt
+        - [x] improve environment.py
+        - [x] test the subgoal constraints? (add a transform to compute from end effector)
 
 ### 2024-11-23
 - [ ] add DINO-X into system
-    - [x] prompt free detection
+    - [ ] prompt free detection
     - [ ] prompt guided detection
 - [ ] add more visualization method
 - [x] test DepthPro 
@@ -44,7 +54,7 @@
     - [x] gaussian process
     - [x] ask GPT for help
     - [x] ask SYZ for help
-- [ ] Kinemtic
+- [x] Kinemtic
     - [x] MEAM5200 note
     - [x] ECE470 note
 - 
@@ -61,11 +71,11 @@ r2d2_vision.py # deploy rekep with vision on r2d2
 vision.sh # run r2d2_vision.py
 vlm_query/ # folder store vlm query
 ```
-- [ ] Test the new tasks
-- [ ] Add the new scenes
-- [ ] Add the new objects
+- [x] Test the new tasks
+- [x] Add the new scenes
+- [x] Add the new objects
 - [ ] Add new camera views
 - [ ] 3D visualization of RGBD
-- [ ] extristic and intrinsic camera calibration
+- [x] extristic and intrinsic camera calibration
 - [ ] 3D bounding box visualization? 
-- [ ] add grounding dino into system
+- [x] add grounding dino into system

@@ -24,7 +24,6 @@ import os
 import torch
 import numpy as np
 import argparse
-import pyrealsense2 as rs
 import supervision as sv
 import cv2
 import json
@@ -113,13 +112,9 @@ class R2D2Vision:
         ny = np.linspace(0, height-1, height)
         u, v = np.meshgrid(nx, ny)
         
-        # 创建一个与原图像大小相同的空点云
         points = np.zeros((height * width, 3))
-        
-        # 只处理非零点
         valid_mask = depth > 0
         
-        # 计算有效点的3D坐标
         x = (u[valid_mask].flatten() - intrinsics.ppx) / intrinsics.fx
         y = (v[valid_mask].flatten() - intrinsics.ppy) / intrinsics.fy
         z = depth[valid_mask].flatten() * depth_scale
@@ -127,7 +122,6 @@ class R2D2Vision:
         x = np.multiply(x, z)
         y = np.multiply(y, z)
 
-        # 将有效点放回对应位置
         valid_indices = np.where(valid_mask.flatten())[0]
         points[valid_indices] = np.stack((x, y, z), axis=-1)
 
@@ -159,8 +153,15 @@ class R2D2Vision:
         cv2.imwrite(f'./data/r2d2_vision/zed/color_{instruction}_{time.strftime("%Y%m%d_%H%M%S")}.png', bgr)
         np.save(f'./data/r2d2_vision/zed/depth_{instruction}_{time.strftime("%Y%m%d_%H%M%S")}.npy', depth)
         
-        # TODO: add DINOX mode
-        if obj_list:
+        if 1: # Prompt-free Detection mode
+            print(f"\033[92mDebug: Prompt-free Detection mode\033[0m")
+            gdino = GroundingDINO()
+            predictions = gdino.get_dinox(color_path, obj_list)
+            bboxes, masks = gdino.visualize_bbox_and_mask(predictions, color_path, './data/')
+            masks = masks.astype(bool)
+            masks = np.stack(masks, axis=0)  # Convert list to 3D array
+
+        elif 0:  # OLD detection mode
             print(f"\033[92mDebug: Manual mask mode\033[0m")
             sam_model = build_sam2(SMA2_CFIG, SAM2_CKPT).to(device)
             self.mask_generator = SAM2ImagePredictor(sam_model)
@@ -176,7 +177,7 @@ class R2D2Vision:
                 print(f"class: {obj.category}, conf: {obj.score:.2f}, bbox: {obj.bbox}")
                 boxes.append(obj.bbox)
             print(f"\033[92mDebug: obj_list: {obj_list}\033[0m")
-            print(f"\033[92mDebug: Boxes: {boxes}\033[0m")
+           
             # SAM
             with torch.no_grad():
                 masks, scores, logits = self.mask_generator.predict(box=boxes, multimask_output=False)
@@ -240,9 +241,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if args.instruction is None:
+        args.instruction = "Brew a cup of espresso."
         # args.instruction = "Put down the green package into drawer."
         # args.instruction = "Pour the object in the bowl into the pot."
-        args.instruction = "Place the pasta bag into the drawer, the end-effector is already at the drawer's keypoint, the drawer is already aligned with the pasta bag and at the proper height."
+        # args.instruction = "Place the pasta bag into the drawer, the end-effector is already at the drawer's keypoint, the drawer is already aligned with the pasta bag and at the proper height."
         # args.instruction = "Pour the object in the bowl into the pot, the end-effector is already at the bowl's keypoint, the bowl is already aligned with the pot and at the proper height."
     if args.data_path is None:
         args.data_path = "/home/franka/R2D2_3dhat/images/current_images"
