@@ -16,7 +16,7 @@ from rekep.utils import (
     get_config,
 )
 
-MODEL_LIST = ["openai:gpt-4o", "anthropic:claude-3-5-sonnet-20240620"]
+MODEL_LIST = ["openai:gpt-4o-2024-11-20", "anthropic:claude-3-5-sonnet-20240620"]
 
 # Function to encode the image
 def encode_image(image_path):
@@ -152,7 +152,7 @@ class ConstraintGenerator:
             json.dump(metadata, f, indent=4) # TODO: check time usage
         print(f"Metadata saved to {os.path.join(self.task_dir, 'metadata.json')}")
 
-    def generate(self, img, instruction, metadata, model_name="openai:chatgpt4o-latest"):
+    def generate(self, img, instruction, metadata, model_name="openai:gpt-4o-2024-11-20"):
         """
         Args:
             img (np.ndarray): image of the scene (H, W, 3) uint8

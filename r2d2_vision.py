@@ -90,7 +90,12 @@ class R2D2Vision:
                 self.fy = 527.53936768  # focal length y
                 self.ppx = 646.46374512  # principal point x
                 self.ppy = 353.03808594  # principal point y
-                
+        class Iphone_Intrinsics:
+            def __init__(self):
+                self.fx = 554.738  # focal length x
+                self.fy = 554.738  # focal length y
+                self.ppx = 320.   # principal point x
+                self.ppy = 240.   # principal point y
         # Use fixed camera intrinsics
         if file_path is not None:
             with open(file_path, 'r') as file:
@@ -98,7 +103,7 @@ class R2D2Vision:
             intrinsics = data['camera']['fixed']['intrinsics']
             depth_scale = data['camera']['fixed']['depth_scale']
         else:
-            intrinsics = ZED_Intrinsics()
+            intrinsics = Iphone_Intrinsics()
             depth_scale = 0.001  # Default depth scale (1mm)
 
         return intrinsics, depth_scale
@@ -127,31 +132,27 @@ class R2D2Vision:
 
         return points  # shape: (height * width, 3)
     
+
     @timer_decorator
-    def perform_task(self, instruction,obj_list, data_path):
-        if 1:
-            color_path = os.path.join(data_path, 'varied_camera_raw.png')
-            depth_path = os.path.join(data_path, 'varied_camera_depth.npy')
-        else:
-            color_path = os.path.join(data_path, 'fixed_camera_raw.png')
-            depth_path = os.path.join(data_path, 'fixed_camera_depth.npy')
+    def perform_task(self, instruction,obj_list, color_path):
+        # if 1:
+        #     color_path = os.path.join(data_path, 'varied_camera_raw.png')
+        #     depth_path = os.path.join(data_path, 'varied_camera_depth.npy')
+        # else:
+        #     color_path = os.path.join(data_path, 'fixed_camera_raw.png')
+        #     depth_path = os.path.join(data_path, 'fixed_camera_depth.npy')
 
-
-        print(f"\033[92mDebug: Looking for files at:\033[0m")
-        print(f"\033[92mDebug: Color path: {color_path}\033[0m")
-        print(f"\033[92mDebug: Depth path: {depth_path}\033[0m")
-        
+        # Verify files exist
+        if not os.path.exists(color_path):
+            raise FileNotFoundError(f"Color image not found at: {color_path}")
         bgr = cv2.imread(color_path)
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        depth = np.load(depth_path)
+        from rekep.perception import generate_depth
+        depth = generate_depth.process_image(color_path, './data/', f_px=30) # 30mm for classic iphone c
 
         print(f"\033[92mDebug: Input image shape: {rgb.shape}\033[0m") # (480, 640, 3)
         print(f"\033[92mDebug: Input depth shape: {depth.shape}\033[0m") # (480, 640)  
 
-        # copy the rgb and depth file to ./data/r2d2_vision/zed
-        os.makedirs('./data/r2d2_vision/zed', exist_ok=True)
-        cv2.imwrite(f'./data/r2d2_vision/zed/color_{instruction}_{time.strftime("%Y%m%d_%H%M%S")}.png', bgr)
-        np.save(f'./data/r2d2_vision/zed/depth_{instruction}_{time.strftime("%Y%m%d_%H%M%S")}.npy', depth)
         
         if 1: # Prompt-free Detection mode
             print(f"\033[92mDebug: Prompt-free Detection mode\033[0m")
@@ -196,7 +197,6 @@ class R2D2Vision:
 
         # Point cloud
         points = self.depth_to_pointcloud(depth)
-        # points = depth
         print(f"\033[92mDebug: Generated point cloud with shape: {points.shape}\033[0m")
         # import pdb; pdb.set_trace()
         # ====================================
@@ -242,14 +242,18 @@ if __name__ == "__main__":
     
     if args.instruction is None:
         args.instruction = "Brew a cup of espresso."
-        # args.instruction = "Put down the green package into drawer."
-        # args.instruction = "Pour the object in the bowl into the pot."
-        # args.instruction = "Place the pasta bag into the drawer, the end-effector is already at the drawer's keypoint, the drawer is already aligned with the pasta bag and at the proper height."
-        # args.instruction = "Pour the object in the bowl into the pot, the end-effector is already at the bowl's keypoint, the bowl is already aligned with the pot and at the proper height."
     if args.data_path is None:
         args.data_path = "/home/franka/R2D2_3dhat/images/current_images"
-    # if args.obj_list is None:
-        # args.obj_list = "bowl, pan, robot end_effector"
+        
     main = R2D2Vision(visualize=args.visualize)
-    rekep_program_dir = main.perform_task(instruction=args.instruction, obj_list=args.obj_list, data_path=args.data_path)
-    print(f"\033[92mDebug: rekep_program_dir: {rekep_program_dir}\033[0m")
+    from tqdm import tqdm
+    data_path = "data/coffee/"
+    image_files = [f for f in os.listdir(data_path) if f.endswith('.png') or f.endswith('.jpg')]
+    
+    print(f"\033[92mProcessing {len(image_files)} images from {data_path}\033[0m")
+    
+    for image_file in tqdm(image_files[::-1], desc="Rekep Vision: "):
+        current_path = os.path.join(data_path, image_file)
+        print(f"\n\033[94mProcessing image: {image_file}\033[0m")
+        rekep_program_dir = main.perform_task(instruction=args.instruction, obj_list=args.obj_list, color_path=current_path)
+        print(f"\033[92mDebug: rekep_program_dir: {rekep_program_dir}\033[0m")
